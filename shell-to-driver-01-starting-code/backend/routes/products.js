@@ -57,17 +57,69 @@ const products = [{
 router.get('/', (req, res, next) => {
   // Return a list of dummy products
   // Later, this data will be fetched from MongoDB
-  const queryPage = req.query.page;
-  const pageSize = 5;
-  let resultProducts = [...products];
-  if (queryPage) {
-    resultProducts = products.slice(
-      (queryPage - 1) * pageSize,
-      queryPage * pageSize
-    );
-  }
-  res.json(resultProducts);
+
+  // const queryPage = req.query.page;
+  // const pageSize = 5;
+  // let resultProducts = [...products];
+  // if (queryPage) {
+  //   resultProducts = products.slice(
+  //     (queryPage - 1) * pageSize,
+  //     queryPage * pageSize
+  //   );
+  // }
+
+  MongoClient.connect(
+      'mongodb+srv://stevedev:test1234@project-guest-house.kagvr.gcp.mongodb.net/shop?retryWrites=true&w=majority'
+    )
+    .then(client => {
+
+      //creat an empty array for saving data from database
+      const products = [];
+
+      // MongoClient will return a Promise with MongoDB's response after adding document to collection
+      client
+        .db()
+        .collection('products')
+        //Find all document from DB and will send back a Cursor
+        .find()
+        .forEach(productDoc => {
+          //add .price property to each productDoc (Obj from Cursor)
+          productDoc.price = productDoc.price.toString();
+          //Push each data (document) products array
+          products.push(productDoc);
+        })
+        .then(result => {
+
+          console.log('\nThe data in products Array:\n');
+          console.log(products);
+
+          console.log('\nThe result of find() method in database:\n');
+          console.log(result);
+
+          client.close();
+
+          //send HTTP response to browser
+          res
+            .status(200)
+            // ## send products Array as data base to front-end
+            .json(products);
+        })
+        .catch(err => {
+          console.log(err);
+          client.close();
+          res.status(500).json({
+            message: 'An error occurred.'
+          });
+        });
+    }) //
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        message: 'An error occurred.'
+      });
+    });
 });
+
 
 // Get single product
 router.get('/:id', (req, res, next) => {
@@ -96,8 +148,10 @@ router.post('', (req, res, next) => {
         .collection('products')
         .insertOne(newProduct) //equals to db.products.insertOne(document) in mongo shell
         .then(result => {
+
           console.log('\nThe result of newly added document in database:\n');
           console.log(result);
+
           client.close();
 
           //send HTTP response to browser
@@ -116,11 +170,15 @@ router.post('', (req, res, next) => {
             message: 'An error occurred.'
           });
         });
-    })
+    }) //
     .catch(err => {
       console.log(err);
+      res.status(500).json({
+        message: 'An error occurred.'
+      });
     });
 });
+
 // Edit existing product
 // Requires logged in user
 router.patch('/:id', (req, res, next) => {
