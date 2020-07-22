@@ -1,29 +1,32 @@
+/*jshint esversion: 6 */
+/*jshint esversion: 8 */
+
 const Router = require('express').Router;
+
+const mongodb = require('mongodb');
+const MongoClient = mongodb.MongoClient;
+const Decimal128 = mongodb.Decimal128;
 
 const router = Router();
 
-const products = [
-  {
+const products = [{
     _id: 'fasdlk1j',
     name: 'Stylish Backpack',
-    description:
-      'A stylish backpack for the modern women or men. It easily fits all your stuff.',
+    description: 'A stylish backpack for the modern women or men. It easily fits all your stuff.',
     price: 79.99,
     image: 'http://localhost:3100/images/product-backpack.jpg'
   },
   {
     _id: 'asdgfs1',
     name: 'Lovely Earrings',
-    description:
-      "How could a man resist these lovely earrings? Right - he couldn't.",
+    description: "How could a man resist these lovely earrings? Right - he couldn't.",
     price: 129.59,
     image: 'http://localhost:3100/images/product-earrings.jpg'
   },
   {
     _id: 'askjll13',
     name: 'Working MacBook',
-    description:
-      'Yes, you got that right - this MacBook has the old, working keyboard. Time to get it!',
+    description: 'Yes, you got that right - this MacBook has the old, working keyboard. Time to get it!',
     price: 1799,
     image: 'http://localhost:3100/images/product-macbook.jpg'
   },
@@ -37,8 +40,7 @@ const products = [
   {
     _id: 'lkljlkk11',
     name: 'A T-Shirt',
-    description:
-      'Never be naked again! This T-Shirt can soon be yours. If you find that buy button.',
+    description: 'Never be naked again! This T-Shirt can soon be yours. If you find that buy button.',
     price: 39.99,
     image: 'http://localhost:3100/images/product-shirt.jpg'
   },
@@ -79,13 +81,46 @@ router.post('', (req, res, next) => {
   const newProduct = {
     name: req.body.name,
     description: req.body.description,
-    price: parseFloat(req.body.price), // store this as 128bit decimal in MongoDB
+    price: Decimal128.fromString(req.body.price.toString()), // store this as 128bit decimal in MongoDB
     image: req.body.image
   };
-  console.log(newProduct);
-  res.status(201).json({ message: 'Product added', productId: 'DUMMY' });
-});
 
+
+  MongoClient.connect(
+      'mongodb+srv://stevedev:test1234@project-guest-house.kagvr.gcp.mongodb.net/shop?retryWrites=true&w=majority'
+    )
+    .then(client => {
+      // MongoClient will return a Promise with MongoDB's response after adding document to collection
+      client
+        .db()
+        .collection('products')
+        .insertOne(newProduct) //equals to db.products.insertOne(document) in mongo shell
+        .then(result => {
+          console.log('\nThe result of newly added document in database:\n');
+          console.log(result);
+          client.close();
+
+          //send HTTP response to browser
+          res
+            .status(201)
+            .json({
+              message: 'Product added',
+              // .insertedId is the ObjectId in MongoDB's document
+              productId: result.insertedId
+            });
+        })
+        .catch(err => {
+          console.log(err);
+          client.close();
+          res.status(500).json({
+            message: 'An error occurred.'
+          });
+        });
+    })
+    .catch(err => {
+      console.log(err);
+    });
+});
 // Edit existing product
 // Requires logged in user
 router.patch('/:id', (req, res, next) => {
@@ -96,13 +131,18 @@ router.patch('/:id', (req, res, next) => {
     image: req.body.image
   };
   console.log(updatedProduct);
-  res.status(200).json({ message: 'Product updated', productId: 'DUMMY' });
+  res.status(200).json({
+    message: 'Product updated',
+    productId: 'DUMMY'
+  });
 });
 
 // Delete a product
 // Requires logged in user
 router.delete('/:id', (req, res, next) => {
-  res.status(200).json({ message: 'Product deleted' });
+  res.status(200).json({
+    message: 'Product deleted'
+  });
 });
 
 module.exports = router;
