@@ -55,11 +55,15 @@ const products = [{
 
 // Get list of ALL products from database "shop"
 router.get('/', (req, res, next) => {
+
+  const queryPage = req.query.page; // current page number
+  const pageSize = 20; // number of items to be displayed on every single page
+
+  console.log(`\n\nThe value of ${queryPage}\n\n`);
+
   // Return a list of dummy products
   // Later, this data will be fetched from MongoDB
 
-  // const queryPage = req.query.page;
-  // const pageSize = 5;
   // let resultProducts = [...products];
   // if (queryPage) {
   //   resultProducts = products.slice(
@@ -68,9 +72,9 @@ router.get('/', (req, res, next) => {
   //   );
   // }
 
-  console.log('\n=== (from products.js) Entering page for all products: ===\n');
-
   const products = [];
+
+  console.log('\n=== (from products.js) Entering page for all products: ===\n');
 
   dbConnection.getDbConnection() // establish connection like using mongo shell to execute "db.collection.find() command"
 
@@ -87,6 +91,15 @@ router.get('/', (req, res, next) => {
     .db()
     .collection('products')
     .find() // will generate a "cursor" object
+    .sort({
+      price: -1, // sort document with price field in descending order
+    })
+    // ======== pagination functions =======
+    .skip(pageSize >= 20 ? 0 : (queryPage - 1) * pageSize) //  the number of how many document will be skipped (ex: page 2, the result skips the number of documents: (2 - 1) * pageSize is 2 documents skipped)
+    // when pageSize > 20 means no skipping
+    .limit(pageSize >= 20 ? 0 : 10) // to limit the number of documents to be sent from database and to be displayed on one page
+    // when pageSize > 20 means no limitation
+    // ======== pagination functions =======
     .forEach(productDoc => {
       // Use .forEach method on the cursor object that handles all the operations on query result using find()
       // ref: https://docs.mongodb.com/manual/reference/method/cursor.forEach/#cursor.forEach

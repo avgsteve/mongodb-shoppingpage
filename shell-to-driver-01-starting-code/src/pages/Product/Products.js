@@ -33,7 +33,7 @@ class ProductsPage extends Component {
 
   // fetch data again after deleting document from database
   fetchData = () => {
-    axios.get( 'http://localhost:3100/products' )
+    axios.get( 'http://localhost:3100/products' ) //add ?page=3 at the end of /products for pagination demo
 
     // when successfully delete document
       .then( productsResponse => {
