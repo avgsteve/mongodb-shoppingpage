@@ -5,6 +5,7 @@ const mongodb = require('mongodb');
 const MongoClient = mongodb.MongoClient;
 const dbConnection = require('../db'); // replace const mongodb to get connection and access to DB
 const Decimal128 = mongodb.Decimal128;
+const ObjectId = mongodb.ObjectId; // to create a ObjectId instance for making a new and unique id for new document // ref: https://mongodb.github.io/node-mongodb-native/3.6/api/ObjectID.html
 
 const router = Router();
 
@@ -120,8 +121,42 @@ router.get('/', (req, res, next) => {
 
 // Get single product
 router.get('/:id', (req, res, next) => {
-  const product = products.find(p => p._id === req.params.id);
-  res.json(product);
+  //the "id" will be the value in "req.params.id"
+
+  // const product = products.find(p => p._id === req.params.id);
+  dbConnection.getDbConnection()
+    .db()
+    .collection('products')
+    .findOne({
+      _id: new ObjectId(req.params.id) //need to use ObjectId() object with passed-in id to make a query
+    }).then(
+
+      //get the (single) document
+      productDoc => {
+        console.log(`\nThe document from database:\n`);
+        console.log(productDoc);
+        console.log("\n\n");
+
+        productDoc.price = productDoc.price.toString(); //need to convert the number to string to String as React.js sees numberDecimal number an invalid data(number) type
+        /* The data of price field saved in MongoDB
+                price:
+          Decimal128 {
+            _bsontype: 'Decimal128',
+            bytes: <Buffer a4 08 00 00 00 00 00 00 00 00 00 00 00 00 3c 30> },
+        */
+        res.status(200).json(productDoc);
+      }
+
+    ).catch(error => {
+      console.log("\n(from products.js) There's an error occurred in router.get('/:id') !:\n");
+      console.log(error);
+      console.log("\n\n");
+
+      res.status(500).json({
+        message: `An error occurred in router.get('/:id').`
+      });
+    });
+
 });
 
 
