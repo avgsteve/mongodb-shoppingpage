@@ -59,7 +59,7 @@ router.get('/', (req, res, next) => {
   const queryPage = req.query.page; // current page number
   const pageSize = 20; // number of items to be displayed on every single page
 
-  console.log(`\n\nThe value of ${queryPage}\n\n`);
+  console.log(`\n\nThe value of req.query.page is: ${queryPage}\n\n`);
 
   // Return a list of dummy products
   // Later, this data will be fetched from MongoDB
