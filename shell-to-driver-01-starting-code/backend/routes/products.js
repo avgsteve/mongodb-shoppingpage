@@ -218,22 +218,60 @@ router.patch('/:id', (req, res, next) => {
   const updatedProduct = {
     name: req.body.name,
     description: req.body.description,
-    price: parseFloat(req.body.price), // store this as 128bit decimal in MongoDB
+    price: Decimal128.fromString(req.body.price.toString()), // store this as 128bit decimal in MongoDB
+    // 如果req.body.price沒有加.toString()的話會出現錯誤訊息: string.trim is not a function
     image: req.body.image
   };
-  console.log(updatedProduct);
-  res.status(200).json({
-    message: 'Product updated',
-    productId: 'DUMMY'
-  });
+
+  // find and update document
+  dbConnection.getDbConnection()
+    .db()
+    .collection('products')
+    .updateOne({
+      _id: new ObjectId(req.params.id) // 1) find the document with ObjectId
+    }, {
+      $set: updatedProduct // 2) update the document
+      // 可使用 $updateOne 加 operator expressions  $set 跟  $unset 去 修改跟移除內容
+      // ref:  https://docs.mongodb.com/manual/reference/method/db.collection.updateOne/#update-with-an-update-operator-expressions-document
+    })
+    .then(result => {
+      res
+        .status(200)
+        .json({
+          message: 'Product updated',
+          productId: req.params.id
+        });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        message: 'An error occurred.'
+      });
+    });
+
 });
 
 // Delete a product
 // Requires logged in user
 router.delete('/:id', (req, res, next) => {
-  res.status(200).json({
-    message: 'Product deleted'
-  });
+  dbConnection.getDbConnection()
+    .db()
+    .collection('products')
+    .deleteOne({
+      _id: new ObjectId(req.params.id) // delete the matched document
+    })
+    .then(result => {
+      res.status(200).json({
+        message: 'Product deleted'
+      });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        message: 'An error occurred.'
+      });
+    });
 });
+
 
 module.exports = router;
