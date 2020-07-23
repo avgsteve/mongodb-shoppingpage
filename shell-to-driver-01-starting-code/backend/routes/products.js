@@ -1,10 +1,9 @@
 /*jshint esversion: 6 */
 /*jshint esversion: 8 */
-
 const Router = require('express').Router;
-
 const mongodb = require('mongodb');
 const MongoClient = mongodb.MongoClient;
+const dbConnection = require('../db'); // replace const mongodb to get connection and access to DB
 const Decimal128 = mongodb.Decimal128;
 
 const router = Router();
@@ -53,7 +52,7 @@ const products = [{
   }
 ];
 
-// Get list of products products
+// Get list of ALL products from database "shop"
 router.get('/', (req, res, next) => {
   // Return a list of dummy products
   // Later, this data will be fetched from MongoDB
@@ -68,50 +67,48 @@ router.get('/', (req, res, next) => {
   //   );
   // }
 
-  MongoClient.connect(
-      'mongodb+srv://stevedev:test1234@project-guest-house.kagvr.gcp.mongodb.net/shop?retryWrites=true&w=majority'
-    )
-    .then(client => {
+  console.log('\n=== (from products.js) Entering page for all products: ===\n');
 
-      //creat an empty array for saving data from database
-      const products = [];
+  const products = [];
 
-      // MongoClient will return a Promise with MongoDB's response after adding document to collection
-      client
-        .db()
-        .collection('products')
-        //Find all document from DB and will send back a Cursor
-        .find()
-        .forEach(productDoc => {
-          //add .price property to each productDoc (Obj from Cursor)
-          productDoc.price = productDoc.price.toString();
-          //Push each data (document) products array
-          products.push(productDoc);
-        })
-        .then(result => {
+  dbConnection.getDbConnection() // establish connection like using mongo shell to execute "db.collection.find() command"
 
-          console.log('\nThe data in products Array:\n');
-          console.log(products);
+    // Originally, use the code below as Promise ... then block to get the connection and use it to perform query task
 
-          console.log('\nThe result of find() method in database:\n');
-          console.log(result);
+    /*  MongoClient.connect(
+          'mongodb+srv://stevedev:test1234@project-guest-house.kagvr.gcp.mongodb.net/shop?retryWrites=true&w=majority'
+        )
+        .then(client =>
+        .db().collection('products').find() ...
 
-          client.close();
+    */
 
-          //send HTTP response to browser
-          res
-            .status(200)
-            // ## send products Array as data base to front-end
-            .json(products);
-        })
-        .catch(err => {
-          console.log(err);
-          client.close();
-          res.status(500).json({
-            message: 'An error occurred.'
-          });
-        });
-    }) //
+    .db()
+    .collection('products')
+    .find() // will generate a "cursor" object
+    .forEach(productDoc => {
+      // Use .forEach method on the cursor object that handles all the operations on query result using find()
+      // ref: https://docs.mongodb.com/manual/reference/method/cursor.forEach/#cursor.forEach
+      //add .price property to each productDoc (Obj from Cursor)
+      productDoc.price = productDoc.price.toString();
+      //Push each data (document) products array
+      products.push(productDoc);
+    })
+    .then(result => {
+
+      console.log('\nThe product data from MongoDB :\n');
+      console.log(products);
+
+      console.log('\nThe result of find() method in database:\n');
+      console.log(result);
+
+      // client.close(); //
+
+      //send HTTP response to browser
+      res.status(200)
+        // ## send products Array as data base to front-end
+        .json(products);
+    })
     .catch(err => {
       console.log(err);
       res.status(500).json({
@@ -126,6 +123,7 @@ router.get('/:id', (req, res, next) => {
   const product = products.find(p => p._id === req.params.id);
   res.json(product);
 });
+
 
 // Add new product
 // Requires logged in user
