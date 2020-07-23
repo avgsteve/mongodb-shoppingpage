@@ -91,9 +91,11 @@ router.get('/', (req, res, next) => {
     .db()
     .collection('products')
     .find() // will generate a "cursor" object
+
     .sort({
       price: -1, // sort document with price field in descending order
-    })
+    }) // can add Indexs in Compass or in Mongo Shell with cmd:  db.products.createIndex({price : 1})
+
     // ======== pagination functions =======
     .skip(pageSize >= 20 ? 0 : (queryPage - 1) * pageSize) //  the number of how many document will be skipped (ex: page 2, the result skips the number of documents: (2 - 1) * pageSize is 2 documents skipped)
     // when pageSize > 20 means no skipping
